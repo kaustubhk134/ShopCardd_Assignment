@@ -13,8 +13,59 @@ Without a centralized system, every team or service ends up building its own not
 The Global Notification Service solves this problem by offering one unified API that any application can use to send notifications. It hides all the complexity of provider integrations, ensures reliable delivery through queues and retries, maintains complete logs, and keeps project-specific data isolated. This makes communication simpler, faster, and more consistent across the entire organization.
 
 ## **1\. High-Level Architecture Diagram**
+<<<<<<< HEAD
 
 ## **API Gateway (Express)**
+=======
+```bash
++----------------+         +----------------+        +---------------+
+|   Client App   | ----->  |  API Gateway   | -----> | Auth Service  |
+| (Shop, Mobile) |   HTTP  |  (Express)     |        | (API Key/JWT) |
++----------------+         +----------------+        +---------------+
+                                   |
+                                   | (validate x-api-key, rate-limit)
+                                   v
+                            +----------------------+
+                            | Notification Service |
+                            |  (Express + Worker)  |
+                            +----------------------+
+                                   |
+                      enqueue job  |   push to queue
+                                   v
+                           +--------------------+
+                           |   Queue (Redis)    |
+                           |   (Bull / BullMQ)  |
+                           +--------------------+
+                                   |
+                                   v
+                           +--------------------+
+                           |   Worker Pool(s)   |
+                           | (per-channel jobs) |
+                           +--------------------+
+                     /         |         |          \
+                    /          |         |           \
+                   v           v         v            v
+             +--------+   +--------+  +--------+   +-----------+
+             | Email  |   | SMS    |  | Push   |   | WhatsApp  |
+             |(SMTP)  |   |(Twilio)|  |(FCM)   |   |(Twilio)   |
+             +--------+   +--------+  +--------+   +-----------+
+                   \           |         |            /
+                    \          |         |           /
+                     \         v         v          /
+                       +-----------------------------+
+                       |   Storage: MongoDB (logs)   |
+                       |   (notifications, templates)|
+                       +-----------------------------+
+                                   |
+                                   v
+                             +-----------+
+                             | Monitoring|
+                             |  & Logs   |
+                             +-----------+
+
+```
+ **API Gateway (Express)**
+>>>>>>> acb8472 (README)
 
 This is the front door for all incoming requests.
 
@@ -25,13 +76,21 @@ Responsibility: accept requests, do quick checks, and send them to the notificat
 - It enforces rate limits (so one project can't spam everyone).
 - Returns a quick acknowledgement (for e.g., 202 Accepted + notificationId) so clients don't wait for delivery.
 
+<<<<<<< HEAD
 ## **Auth Service / API Key Store**
+=======
+ **Auth Service / API Key Store**
+>>>>>>> acb8472 (README)
 
 A small service or DB collection that knows which API keys belong to which project.
 
 Responsibility: map incoming API keys to projectId and tenant rules. It also stores metadata like allowed channels and rate-limit settings. In short: "who is calling and what are they allowed to do."
 
+<<<<<<< HEAD
 ## **Notification Service (Orchestrator)**
+=======
+ **Notification Service (Orchestrator)**
+>>>>>>> acb8472 (README)
 
 The brain that coordinates everything.  
 Responsibility:
@@ -42,11 +101,19 @@ Responsibility:
 - Enqueues jobs into the queue for actual sending.
 - Returns the notificationId to the caller and tracks overall status.
 
+<<<<<<< HEAD
 ## **Idempotency Store**
 
 Responsibility: remember requests identified by idempotency-key. If a client resends the same key, the system returns the previous result instead of sending duplicates.
 
 ## **Queue (Redis + Bull or similar)**
+=======
+ **Idempotency Store**
+
+Responsibility: remember requests identified by idempotency-key. If a client resends the same key, the system returns the previous result instead of sending duplicates.
+
+ **Queue (Redis + Bull or similar)**
+>>>>>>> acb8472 (README)
 
 The temporary holding area for work that needs to be done.  
 Responsibility:
@@ -56,7 +123,11 @@ Responsibility:
 - Keeps jobs durable and visible to workers even if the server restarts.
 - Helps control throughput so providers aren't overwhelmed.
 
+<<<<<<< HEAD
 ## **Worker Pool (Channel-specific workers)**
+=======
+ **Worker Pool (Channel-specific workers)**
+>>>>>>> acb8472 (README)
 
 Background processes that actually send messages. You can run many workers in parallel.  
 Responsibility:
@@ -66,7 +137,11 @@ Responsibility:
 - Update notification_logs and the notifications record with attempt results.
 - Throw or mark failures in a way the queue understands so retries happen automatically.
 
+<<<<<<< HEAD
 ## **Provider Adapters (Email / SMS / Push / WhatsApp modules)**
+=======
+ **Provider Adapters (Email / SMS / Push / WhatsApp modules)**
+>>>>>>> acb8472 (README)
 
 Small modules that know how to talk to a specific external service (e.g., Nodemailer for SMTP, Twilio for SMS).  
 Responsibility:
@@ -76,7 +151,11 @@ Responsibility:
 - Verify signatures for incoming webhooks (when providers call us back).
 - Keep provider logic isolated so you can swap or add providers easily.
 
+<<<<<<< HEAD
 ## **Storage (MongoDB)**
+=======
+ **Storage (MongoDB)**
+>>>>>>> acb8472 (README)
 
 The system's memory: stores notifications, projects, idempotency keys, and logs.  
 Responsibility:
@@ -85,7 +164,11 @@ Responsibility:
 - Provide indexes for quick lookups (by notificationId and projectId) so dashboard and APIs are responsive.
 - Serve as the audit trail for troubleshooting and compliance.
 
+<<<<<<< HEAD
 ## **Dead Letter Queue (DLQ) / Failed Jobs Store**
+=======
+ **Dead Letter Queue (DLQ) / Failed Jobs Store**
+>>>>>>> acb8472 (README)
 
 A place for jobs that failed too many times.  
 Responsibility:
@@ -93,7 +176,11 @@ Responsibility:
 - Capture jobs that retried and kept failing (e.g., bad phone numbers or persistent provider errors).
 - Let operators inspect, fix, or manually retry those jobs without losing data.
 
+<<<<<<< HEAD
 ## **Webhook Receiver**
+=======
+ **Webhook Receiver**
+>>>>>>> acb8472 (README)
 
 Endpoint to accept asynchronous delivery reports from providers (e.g., SMS delivered, email bounced).  
 Responsibility:
@@ -102,7 +189,11 @@ Responsibility:
 - Update notification_logs and notifications status based on delivery events (DELIVERED, BOUNCED, READ).
 - Provide visibility into final delivery states beyond initial SENT.
 
+<<<<<<< HEAD
 ## **Rate Limiter (per-tenant)**
+=======
+ **Rate Limiter (per-tenant)**
+>>>>>>> acb8472 (README)
 
 Controls how many requests a project can make over time.  
 Responsibility:
@@ -111,7 +202,11 @@ Responsibility:
 - Uses config per projectId (e.g., 100 req/min).
 - Works at the gateway and can also inform worker concurrency decisions.
 
+<<<<<<< HEAD
 ## **Monitoring & Logging (Prometheus / Grafana / ELK)**
+=======
+ **Monitoring & Logging (Prometheus / Grafana / ELK)**
+>>>>>>> acb8472 (README)
 
 The observability stack.  
 Responsibility:
@@ -120,7 +215,11 @@ Responsibility:
 - Store logs in structured format for fast search.
 - Trigger alerts if error rate or queue length crosses thresholds so humans can act quickly.
 
+<<<<<<< HEAD
 ## **Admin Dashboard (EJS + Bootstrap)**
+=======
+ **Admin Dashboard (EJS + Bootstrap)**
+>>>>>>> acb8472 (README)
 
 A simple UI for operators or non-technical reviewers.  
 Responsibility:
@@ -129,7 +228,11 @@ Responsibility:
 - Allow filtering by projectId, status, or date.
 - Provide actions such as re-queueing a DLQ item or retrying a failed notification.
 
+<<<<<<< HEAD
 ## **Secret & Config Store (ENV or Secrets Manager)**
+=======
+ **Secret & Config Store (ENV or Secrets Manager)**
+>>>>>>> acb8472 (README)
 
 Where provider API keys and sensitive configs live.  
 Responsibility:
@@ -137,7 +240,11 @@ Responsibility:
 - Keep provider credentials out of code.
 - Allow rotation and scoped access; for production prefer AWS Secrets Manager or similar.
 
+<<<<<<< HEAD
 ## **Health & Recovery Utilities**
+=======
+ **Health & Recovery Utilities**
+>>>>>>> acb8472 (README)
 
 Small endpoints and scripts to keep the system healthy.  
 Responsibility:
@@ -146,12 +253,21 @@ Responsibility:
 - Scripts to requeue stuck jobs, clean expired idempotency keys, and inspect DLQ.
 
 **Data Flow:**
+<<<<<<< HEAD
 
 Client calls API → Gateway validates and forwards → Notification Service saves record and enqueues job → Worker picks job and uses adapter to call provider → Worker logs result and updates notification → Webhook may later update delivery status → Monitoring alerts if something goes wrong.
 
 **2\. Database Schema**
 
 **1. projects:**
+=======
+```bash
+Client calls API → Gateway validates and forwards → Notification Service saves record and enqueues job → Worker picks job and uses adapter to call provider → Worker logs result and updates notification → Webhook may later update delivery status → Monitoring alerts if something goes wrong.
+```
+**2\. Database Schema**
+
+**projects:**
+>>>>>>> acb8472 (README)
 ```bash
 {
   \_id: ObjectId,
@@ -164,9 +280,15 @@ Client calls API → Gateway validates and forwards → Notification Service sav
   status: String // 'active' | 'disabled'
 }
 ```
+<<<<<<< HEAD
 **Indexes: { projectId: 1 } (unique), { apiKeyHash: 1 }**
 
 **2. Notifications:**
+=======
+Indexes: { projectId: 1 } (unique), { apiKeyHash: 1 }
+
+**Notifications:**
+>>>>>>> acb8472 (README)
 ```bash
 {
   \_id: ObjectId,
@@ -182,9 +304,15 @@ Client calls API → Gateway validates and forwards → Notification Service sav
   updatedAt: Date
 }
 ```
+<<<<<<< HEAD
 **Indexes: { notificationId: 1 } (unique), { projectId: 1, createdAt: -1 }**
 
 **3. idempotency_keys**
+=======
+Indexes: { notificationId: 1 } (unique), { projectId: 1, createdAt: -1 }
+
+### **idempotency_keys:**
+>>>>>>> acb8472 (README)
 ```bash
 {
   \_id: ObjectId,
@@ -197,7 +325,11 @@ Client calls API → Gateway validates and forwards → Notification Service sav
 ```
 **Indexes: { key: 1, projectId: 1 } (unique), TTL index on expiresAt**
 
+<<<<<<< HEAD
 **4. templates (optional)**
+=======
+### **templates:**
+>>>>>>> acb8472 (README)
 ```bash
 {
   \_id: ObjectId,
@@ -209,6 +341,7 @@ Client calls API → Gateway validates and forwards → Notification Service sav
   createdAt: Date
 }
 ```
+<<<<<<< HEAD
 **3\. & Multi-Tenancy Strategy**
 
 **In this system, many different projects (clients) will use the same Notification Service. This means they all share the same infrastructure - same API, same database, same queue - but their data must remain fully isolated. Project A should never see Project B's notifications, templates, logs, or API usage.**
@@ -216,6 +349,15 @@ Client calls API → Gateway validates and forwards → Notification Service sav
 **To ensure this isolation, we use a simple but very effective strategy:**
 
 ## **1\. Every project gets its own API key**
+=======
+## **3\. Multi-Tenancy Strategy**
+
+In this system, many different projects (clients) will use the same Notification Service. This means they all share the same infrastructure - same API, same database, same queue - but their data must remain fully isolated. Project A should never see Project B's notifications, templates, logs, or API usage.
+
+To ensure this isolation, we use a simple but very effective strategy:
+
+ **1\. Every project gets its own API key**
+>>>>>>> acb8472 (README)
 
 When a project is created, we give it a unique API key.  
 This key acts like a secret password.
@@ -226,7 +368,11 @@ x-api-key: &lt;secret-key&gt;
 
 Only requests with a valid key are allowed in.
 
+<<<<<<< HEAD
 ## **2\. Each API key is linked to a projectId**
+=======
+ **2\. Each API key is linked to a projectId**
+>>>>>>> acb8472 (README)
 
 In the database, we store:
 
@@ -240,11 +386,16 @@ So when a request comes in, the server immediately knows:
 
 This mapping is the foundation of multi-tenancy.
 
+<<<<<<< HEAD
 ## **3\. Every record we store includes the projectId**
+=======
+ **3\. Every record we store includes the projectId**
+>>>>>>> acb8472 (README)
 
 Any time we create something - a notification, a log entry, a template, or an idempotency key - we always save the projectId inside it.
 
 Example notification record:
+<<<<<<< HEAD
 
 {
 
@@ -272,6 +423,27 @@ projectId: req.projectId
 
 })
 
+=======
+```bash
+{
+  "notificationId": "12345",
+  "projectId": "project-A",
+  "status": "SENT",
+  "channels": \["email"\]
+}
+```
+This means if Project B tries to fetch this notification, it will not be returned, because it belongs to Project A.
+
+ **4\. Every database query is automatically filtered by projectId**
+
+Inside the code we always query like this:
+```bash
+db.notifications.find(
+notificationId,
+projectId: req.projectId
+})
+```
+>>>>>>> acb8472 (README)
 This is extremely important.  
 It ensures that:
 
@@ -282,7 +454,11 @@ they still cannot access anything that doesn't match their own projectId.
 
 The server will simply return "Not Found".
 
+<<<<<<< HEAD
 ## **5\. Workers also respect project boundaries**
+=======
+ **5\. Workers also respect project boundaries**
+>>>>>>> acb8472 (README)
 
 When workers pick jobs from the queue, each job contains its projectId. Workers use this to:
 
@@ -291,6 +467,7 @@ When workers pick jobs from the queue, each job contains its projectId. Workers 
 - Enforce project-specific rules
 
 Even inside the background processes, tenants stay isolated.
+<<<<<<< HEAD
 
 Even though Project A and Project B use the same infrastructure (same API layer, same database, same queue), they can never access each other's data. Every request is authenticated using an API key that maps to a specific projectId. All stored records include this projectId, and every database query is automatically filtered by it. This ensures complete tenant isolation.
 
@@ -486,56 +663,290 @@ Even though Project A and Project B use the same infrastructure (same API layer,
 **Tech stack choices:**
 
 ## **Backend framework - Node.js + Express**
+=======
+```bash
+                   +--------------------------------------+
+                   |         Notification Service         |
+                   |       (Shared Infrastructure)        |
+                   +--------------------------------------+
+                       |                           |
+                       |                           |
+     Request from       |                           |         Request from
+     Project A          |                           |         Project B
+     (x-api-key A)      |                           |         (x-api-key B)
+                       v                           v
+            +------------------+         +------------------+
+            |  Auth Middleware |         |  Auth Middleware |
+            |  (API Key Check) |         |  (API Key Check) |
+            +------------------+         +------------------+
+                        |                             |
+                        | maps to                     | maps to
+                        v                             v
+                   projectId = A               projectId = B
+                        |                             |
+                        |                             |
+         +--------------------------------+   +--------------------------------+
+         |   Application Logic            |   |   Application Logic            |
+         |   Always queries with:         |   |   Always queries with:         |
+         |   { projectId: "A" }           |   |   { projectId: "B" }           |
+         +--------------------------------+   +--------------------------------+
+                        |                             |
+                        | writes/reads only           | writes/reads only
+                        | documents tagged A          | documents tagged B
+                        v                             v
+              +--------------------+        +---------------------+
+              |  Shared Database   |        |   Shared Database   |
+              | (MongoDB Records)  |        |  (Same Collections) |
+              +--------------------+        +---------------------+
+                     |    |    |                   |    |    |
+                     |    |    |                   |    |    |
+                     v    v    v                   v    v    v
+        +------------------------------+   +-------------------------------+
+        | notifications (projectId=A)  |   | notifications (projectId=B)  |
+        | logs (projectId=A)           |   | logs (projectId=B)           |
+        | idempotency (projectId=A)    |   | idempotency (projectId=B)    |
+        +------------------------------+   +-------------------------------+
+```
+Even though Project A and Project B use the same infrastructure (same API layer, same database, same queue), they can never access each other's data. Every request is authenticated using an API key that maps to a specific projectId. All stored records include this projectId, and every database query is automatically filtered by it. This ensures complete tenant isolation.
+
+## **3\. Integration & Implementation Plan**
+
+**API Design - Key Endpoints**
+
+Below are the primary APIs exposed by the Global Notification Service. All APIs require the tenant's x-api-key for authentication and automatically scope data to the corresponding projectId.\\
+
+ **1\. Send Notification**
+```bash
+POST /api/v1/notifications/send
+```
+Trigger a notification through one or multiple channels (Email, SMS, Push, WhatsApp).
+
+Headers:
+
+- x-api-key: &lt;project-api-key&gt;
+- idempotency-key: &lt;optional-key&gt;
+
+**Request Body:**
+```bash
+{
+  "templateId": "order_confirmation",
+  "channels": \["email", "sms"\],
+  "payload": {
+  "to": {
+  "email": "<user@example.com>",
+  "phone": "+9199xxxxxxx"
+  },
+  
+  "vars": {
+  "userName": "Amit",
+  "orderId": "ORD-1234"
+    }
+  },
+  "metadata": {
+  "source": "checkout-page"
+    }
+}
+```
+**Response (202):**
+```bash
+{
+  "notificationId": "uuid-v4",
+  "status": "PENDING"
+}
+```
+ **2\. Get Notification Status**
+```bash
+GET /api/v1/notifications/{notificationId}
+```
+Fetch the current status of a notification.
+
+**Headers:**
+
+- x-api-key: &lt;project-api-key&gt;
+
+**Response:**
+```bash
+{
+  "notificationId": "uuid-v4",
+  "projectId": "project-A",
+  "channels": \["email", "sms"\],
+  "status": "SENT",
+  "attempts": 1,
+  "logs": \[
+  { "channel": "email", "event": "SENT", "timestamp": "..." },
+  { "channel": "sms", "event": "DELIVERED", "timestamp": "..." }
+  \]
+}
+```
+## **3\. List Notifications (Paginated)**
+```bash
+GET /api/v1/notifications?limit=20&page=1
+```
+Returns notifications that belong to the tenant, sorted by newest first.
+
+**Headers:**
+
+- x-api-key: &lt;project-api-key&gt;
+
+ **4\. Retry Failed Notification**
+```bash
+POST /api/v1/notifications/{notificationId}/retry
+```
+Manually retry a failed notification (useful for dashboard or admin tools).
+
+**Headers:**
+
+- x-api-key: &lt;project-api-key&gt;
+
+ **5\. Webhook Endpoint (Provider Callbacks)**
+```bash
+POST /api/v1/hooks/{providerName}
+```
+Receives delivery receipts from external providers (e.g., Twilio, SMTP, FCM).
+
+**Headers:**
+
+- Provider-specific signature headers
+
+**Body Example:**
+```bash
+{
+  "providerMessageId": "abc123",
+  "event": "DELIVERED",
+  "timestamp": 1234567890
+}
+```
+ **6\. Admin - Create Project (Internal Only)**
+```bash
+POST /api/v1/admin/projects
+```
+Used internally to create new tenants and generate API keys.
+
+**Body:**
+```bash
+{
+  "name": "ShopCard Application",
+  "allowedChannels": \["email", "sms", "push"\]
+}
+```
+**Response:**
+```bash
+{
+  "projectId": "shopcard-001",
+  "apiKey": "generated-secret-key"
+}
+```
+Note: This endpoint is protected using an internal admin token. Not available to normal clients.
+
+ **7\. Admin - Create or Update Template**
+```bash
+POST /api/v1/admin/templates
+```
+Uploads notification templates per tenant.
+
+**Body:**
+```bash
+{
+  "projectId": "shopcard-001",
+  "templateId": "order_confirmation",
+  "channels": \["email"\],
+  "subject": "Order Confirmed: {{orderId}}",
+  "body": "Hello {{userName}}, your order {{orderId}} has been placed."
+}
+```
+##**Tech stack choices:**
+
+ **Backend framework - Node.js + Express**
+>>>>>>> acb8472 (README)
 
 **Why:** You already know JavaScript/Node and Express is lightweight and fast to prototype with. It's excellent for building REST APIs and has a huge ecosystem (middleware, validation, authentication).  
 **Alternative:** Java + Spring Boot (more "enterprisey" but heavier).
 
+<<<<<<< HEAD
 ## **Database (primary) - MongoDB**
+=======
+ **Database (primary) - MongoDB**
+>>>>>>> acb8472 (README)
 
 **Why:** Flexible document model fits notifications (variable payloads, logs, templates). Easy to add fields and store per-tenant documents like notifications, logs, projects. Mongoose makes schemas straightforward.  
 **Alternative:** PostgreSQL if you prefer strong relational guarantees or want ACID for billing/ledger features.
 
+<<<<<<< HEAD
 ## **Queue / Job Processing - Redis + Bull (or BullMQ)**
+=======
+ **Queue / Job Processing - Redis + Bull (or BullMQ)**
+>>>>>>> acb8472 (README)
 
 **Why:** Simple to run locally (Docker), easy API for delayed/retry jobs and DLQ patterns, good visibility of job states. Perfect for sending notifications asynchronously and implementing backoff/retry logic.  
 **Alternative:** RabbitMQ (more feature-rich) or AWS SQS (managed).
 
+<<<<<<< HEAD
 ## **Email adapter - Nodemailer (SMTP)**
+=======
+ **Email adapter - Nodemailer (SMTP)**
+>>>>>>> acb8472 (README)
 
 **Why:** Works with any SMTP provider, simple to configure for demos or real SMTP like SendGrid/Mailgun. Lets you show working email sends without complex SDKs.  
 **Alternative:** Provider SDKs (SendGrid SDK) for richer features.
 
+<<<<<<< HEAD
 ## **SMS / WhatsApp adapter - Twilio (or pluggable stub)**
+=======
+ **SMS / WhatsApp adapter - Twilio (or pluggable stub)**
+>>>>>>> acb8472 (README)
 
 **Why:** Twilio is industry-standard, exposes SMS and WhatsApp APIs, and has good docs. For assignment/demo, you can implement a small stub adapter and swap in Twilio later.  
 **Alternative:** Nexmo (Vonage), Plivo, or provider-specific APIs.
 
+<<<<<<< HEAD
 ## **Push notifications - Firebase Cloud Messaging (FCM) (or stub)**
+=======
+ **Push notifications - Firebase Cloud Messaging (FCM) (or stub)**
+>>>>>>> acb8472 (README)
 
 **Why:** FCM is free and standard for Android/iOS/web push. Easy to mock for a design document and optional to wire in later.  
 **Alternative:** APNs directly for iOS (more setup).
 
+<<<<<<< HEAD
 ## **Background workers - Node.js worker processes (same codebase or separate service)**
+=======
+ **Background workers - Node.js worker processes (same codebase or separate service)**
+>>>>>>> acb8472 (README)
 
 **Why:** Keeps business logic in JavaScript, easy to share adapters/models between API and worker; spawn multiple worker processes for scaling.  
 **Alternative:** Separate microservice in another language if needed later.
 
+<<<<<<< HEAD
 ## **Caching / Rate-limiting store - Redis**
+=======
+ **Caching / Rate-limiting store - Redis**
+>>>>>>> acb8472 (README)
 
 **Why:** Fast for token buckets and rate limiting; also used by Bull so minimal infra duplication.  
 **Alternative:** In-memory (bad for multiple instances) or external rate-limiting services.
 
+<<<<<<< HEAD
 ## **Local development & reproducible env**
+=======
+ **Local development & reproducible env**
+>>>>>>> acb8472 (README)
 
 **Docker Compose** (MongoDB, Redis, app)  
 **Why:** Easy to run everything locally and demonstrate the flow on your laptop.
 
+<<<<<<< HEAD
 **Failure Handling:**
 
 **Quick detection & restart** - health checks (liveness/readiness) let orchestration (Docker Compose/systemd/Kubernetes) detect failures and restart the service automatically.  
 
 **Graceful recovery** - when the service comes back, workers continue processing jobs from the queue and update the database with latest statuses.  
 
+=======
+## **Failure Handling:**
+
+**Quick detection & restart** - health checks (liveness/readiness) let orchestration (Docker Compose/systemd/Kubernetes) detect failures and restart the service automatically.  
+**Graceful recovery** - when the service comes back, workers continue processing jobs from the queue and update the database with latest statuses.  
+>>>>>>> acb8472 (README)
 **Human alerting** - monitoring tools (Prometheus/Sentry) trigger alerts (email/Slack/pager) if the service is down or error rates spike, so an engineer can investigate.
 
 **If a 3rd-party API fails:**
@@ -544,6 +955,7 @@ If the third party API fails we can handle it by using optional chaining from pr
 
 **4\. Roadmap (Micro-Steps)**
 
+<<<<<<< HEAD
 **Phase 1: Setup & Database  
 **
 
@@ -564,13 +976,33 @@ If the third party API fails we can handle it by using optional chaining from pr
 
 **Phase 3: Security & Tenant Isolation  
 **
+=======
+**Phase 1: Setup & Database**
+
+- Start by setting up the basic Node.js + Express project and creating a clean folder structure.  
+- Configure environment variables and connect the service to MongoDB using Mongoose.  
+- Create a small seed script to insert a sample project with an API key so I can test authentication later.  
+- Add a simple /health route to confirm the service is running properly.  
+
+**Phase 2: Core Notification APIs**
+
+- Build the main endpoint: ```POST /api/v1/notifications/send``` which creates a notification entry in the database and returns a notificationId.
+- Implement ```GET /api/v1/notifications/:id``` for viewing the status of a specific notification, and a paginated listing API for all notifications under a project.
+- Add the idempotency key logic so repeated requests with the same key don't create duplicate notifications.  
+
+**Phase 3: Security & Tenant Isolation**
+>>>>>>> acb8472 (README)
 
 - Implement middleware to validate the x-api-key and map it to the correct projectId.
 - Ensure that every database query automatically filters by projectId, so one project never accesses another's data.
 - Add basic rate limiting per project (e.g., requests/minute) to avoid overload or misuse.  
 
+<<<<<<< HEAD
 **Phase 4: Queue & External Provider Integration  
 **
+=======
+**Phase 4: Queue & External Provider Integration**
+>>>>>>> acb8472 (README)
 
 - Integrate Redis + Bull to push each notification into a background queue instead of sending it directly.
 - Create a worker process that pulls jobs from the queue and calls channel adapters (email, SMS, etc.). Initially, these will be simple stubs to simulate sends.
@@ -580,4 +1012,8 @@ If the third party API fails we can handle it by using optional chaining from pr
 
 - Store logs of every attempt in a notification_logs collection to keep a full audit trail.
 - Write a clear README with setup steps, API usage examples, and environment variables.
+<<<<<<< HEAD
 - Prepare the final assignment document with architecture diagrams, DB schema, API list, and this roadmap.
+=======
+- Prepare the final assignment document with architecture diagrams, DB schema, API list, and this roadmap.
+>>>>>>> acb8472 (README)
